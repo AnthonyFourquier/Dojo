@@ -1,5 +1,7 @@
-﻿using BO;
+﻿using Azure;
+using BO;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 
 
 namespace TPDojo
@@ -16,6 +18,10 @@ namespace TPDojo
 
         public DbSet<Arme> Arme { get; set; }
 
+        public DbSet<ArtMartial> ArtMartial { get; set; }
+
+        public DbSet<ArtMartialSamourai> ArtMartialSamourai { get; set; }
+
         /// <summary>
         /// overide de la methode de configuration de la connection a la base de donnée
         /// </summary>
@@ -25,6 +31,13 @@ namespace TPDojo
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Samourai>()
+                .HasMany(e => e.ArtMartials)
+                .WithMany(e => e.Samourais)
+                .UsingEntity<ArtMartialSamourai>(
+            l => l.HasOne<ArtMartial>().WithMany().HasForeignKey(e => e.SamouraiId),
+            r => r.HasOne<Samourai>().WithMany().HasForeignKey(e => e.ArtMartialId));
+
             int id = 1;
             Random r = new Random();
             modelBuilder.Entity<Samourai>().HasData(new Samourai { Id = id++, Name = "Abe Masakatsu", Force = r.Next(2000) });

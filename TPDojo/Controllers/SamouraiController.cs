@@ -9,6 +9,7 @@ using BO;
 using TPDojo;
 using TPDojo.Models;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 
 namespace TPDojo.Controllers
 {
@@ -77,6 +78,7 @@ namespace TPDojo.Controllers
 
             var samourai = await _context.Samourai.Include(s => s.Arme)
                 .FirstOrDefaultAsync(m => m.Id == id);
+   
             if (samourai == null)
             {
                 return NotFound();
@@ -90,7 +92,8 @@ namespace TPDojo.Controllers
         {
             SamouraiVM samouraiVM = new SamouraiVM()
             {
-                Armes = new SelectList(_context.Arme.ToList(), "Id", "Name")
+                Armes = new SelectList(_context.Arme.ToList(), "Id", "Name"),
+                ArtMartialsSelect = new SelectList(_context.ArtMartial.ToList(), "Id", "Name")
             };
 
             return View(samouraiVM);
@@ -101,11 +104,33 @@ namespace TPDojo.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Force,ArmeId")] Samourai samourai)
+        public async Task<IActionResult> Create([Bind("Id,Name,Force,ArmeId,ArtMartialSamouraiIds")] SamouraiVM samourai)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(samourai);
+                Samourai samouraiNew = new Samourai()
+                {
+                    Id = samourai.Id,
+                    Name = samourai.Name,
+                    Force = samourai.Force,
+                    ArmeId = samourai.ArmeId
+                };
+
+                _context.Samourai.Add(samouraiNew);
+
+                var artMartials = from artMartial in _context.ArtMartial
+                                               where samourai.ArtMartialSamouraiIds.Contains(artMartial.Id)
+                                               select artMartial;
+
+               
+                _context.ArtMartialSamourai.AddRange(artMartials.Select( am => new ArtMartialSamourai()
+                {
+                    ArtMartial = am,
+                    ArtMartialId = am.Id,
+                    Samourai = samouraiNew,
+                    SamouraiId = samouraiNew.Id
+                }));
+
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
@@ -125,20 +150,24 @@ namespace TPDojo.Controllers
             {
                 return NotFound();
             }
+            //check arme dispo
             var armesNoDispo = from s in _context.Samourai
                              join a in _context.Arme on s.ArmeId equals a.Id
                              select a;
            var armesAll = _context.Arme;
            var armesDispo = armesAll.Except(armesNoDispo);
-           
+
             SamouraiVM samouraiVM = new SamouraiVM()
             {
                 Id = samourai.Id,
                 Name = samourai.Name,
-                Force = samourai.Force, 
+                Force = samourai.Force,
                 Armes = new SelectList(armesDispo, "Id", "Name"),
-                ArmeId = samourai.ArmeId
+                ArmeId = samourai.ArmeId,
+                ArtMartialsSelect = new SelectList(_context.ArtMartial, "Id", "Name"),
+               /* ArtMartialSamourai = new SelectList(from artMartialSamourai in _context.ArtMartialSamourai where artMartialSamourai.SamouraiId == samourai.Id select artMartialSamourai.ArtMartialId, "Id"),*/
             };
+
 
             return View(samouraiVM);
         }
@@ -148,7 +177,7 @@ namespace TPDojo.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Force,ArmeId")] Samourai samourai)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Force,ArmeId,ArtMartials")] Samourai samourai)
         {
             if (id != samourai.Id)
             {

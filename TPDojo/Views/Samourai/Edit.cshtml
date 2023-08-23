@@ -28,6 +28,11 @@
                 <select asp-for="ArmeId" asp-items="@Model.Armes" class="form-control"></select>
                 <span asp-validation-for="ArmeId" class="text-danger"></span>
             </div>
+            <div class="form-group">
+                <label asp-for="ArtMartials" class="control-label"></label>
+                <select asp-for="ArtMartials" asp-items="@Model.ArtMartialsSelect" class="form-control" multiple></select>
+                <span asp-validation-for="ArtMartials" class="text-danger"></span>
+            </div>
             
             <div class="form-group">
                 <input type="submit" value="Save" class="btn btn-primary" />

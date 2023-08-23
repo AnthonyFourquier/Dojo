@@ -11,5 +11,8 @@
 
         public int? ArmeId { get; set; }
 
+        public List<ArtMartial>? ArtMartials { get; set; }
+
+
     }
 }
